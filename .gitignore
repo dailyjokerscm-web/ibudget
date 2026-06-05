@@ -46,6 +46,8 @@ target/
 .ipynb_checkpoints
 .pytype/
 .mypy_cache/
-.dmypy.json
 dmypy.json
 .pyre/
+.coverage
+htmlcov/
+.pytest_cache/

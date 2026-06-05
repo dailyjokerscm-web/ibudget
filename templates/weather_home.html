@@ -1,0 +1,39 @@
+{% extends "weather_base.html" %}
+
+{% block title %}Weather Dashboard - Home{% endblock %}
+
+{% block content %}
+<div style="text-align: center; padding: 4rem 1rem;">
+    <h1 style="font-size: 3rem; color: white; margin-bottom: 1rem;">🌤️ Weather Dashboard</h1>
+    <p style="font-size: 1.3rem; color: rgba(255,255,255,0.9); margin-bottom: 2rem;">Get real-time weather forecasts for any location</p>
+    
+    <div style="background: white; border-radius: 10px; padding: 3rem; max-width: 500px; margin: 2rem auto; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+        <h2 style="color: #667eea; margin-bottom: 1.5rem;">Welcome!</h2>
+        <p style="color: #666; margin-bottom: 2rem;">Sign up or login to access real-time weather information, manage favorites, and get weather alerts.</p>
+        
+        <div style="display: flex; gap: 1rem; justify-content: center;">
+            <a href="/signup" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1rem 2rem; border-radius: 5px; text-decoration: none; font-weight: bold; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">Sign Up</a>
+            <a href="/login" style="display: inline-block; background: white; color: #667eea; padding: 1rem 2rem; border-radius: 5px; text-decoration: none; font-weight: bold; border: 2px solid #667eea; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">Login</a>
+        </div>
+    </div>
+    
+    <div style="margin-top: 3rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+        <div style="background: rgba(255,255,255,0.1); padding: 1.5rem; border-radius: 10px; color: white;">
+            <h3 style="margin-bottom: 0.5rem;">🌍 Global Coverage</h3>
+            <p>Weather data for any city worldwide</p>
+        </div>
+        <div style="background: rgba(255,255,255,0.1); padding: 1.5rem; border-radius: 10px; color: white;">
+            <h3 style="margin-bottom: 0.5rem;">📊 5-Day Forecast</h3>
+            <p>Detailed forecasts for the week ahead</p>
+        </div>
+        <div style="background: rgba(255,255,255,0.1); padding: 1.5rem; border-radius: 10px; color: white;">
+            <h3 style="margin-bottom: 0.5rem;">⭐ Favorites</h3>
+            <p>Save and track your favorite locations</p>
+        </div>
+        <div style="background: rgba(255,255,255,0.1); padding: 1.5rem; border-radius: 10px; color: white;">
+            <h3 style="margin-bottom: 0.5rem;">🚨 Alerts</h3>
+            <p>Get notifications for severe weather</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

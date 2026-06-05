@@ -1,0 +1,470 @@
+{% extends "weather_base.html" %}
+
+{% block title %}Weather Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+    .search-section {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 2rem;
+        border-radius: 10px;
+        margin-bottom: 2rem;
+        color: white;
+    }
+    
+    .search-container {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .search-container input {
+        flex: 1;
+        padding: 0.75rem;
+        border: none;
+        border-radius: 5px;
+    }
+    
+    .search-container button {
+        padding: 0.75rem 2rem;
+        background: white;
+        color: #667eea;
+        border: none;
+        border-radius: 5px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    
+    .search-container button:hover {
+        background: #f0f0f0;
+    }
+    
+    .temp-toggle {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: flex-end;
+    }
+    
+    .temp-toggle button {
+        padding: 0.5rem 1rem;
+        background: rgba(255,255,255,0.2);
+        border: 2px solid white;
+        color: white;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    
+    .temp-toggle button.active {
+        background: white;
+        color: #667eea;
+    }
+    
+    .tabs {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 2rem;
+        border-bottom: 2px solid #eee;
+    }
+    
+    .tab {
+        padding: 1rem 1.5rem;
+        background: none;
+        border: none;
+        color: #999;
+        cursor: pointer;
+        font-weight: 500;
+        transition: all 0.3s;
+        border-bottom: 3px solid transparent;
+    }
+    
+    .tab.active {
+        color: #667eea;
+        border-bottom-color: #667eea;
+    }
+    
+    .tab-content {
+        display: none;
+    }
+    
+    .tab-content.active {
+        display: block;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="search-section">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h2>Search Weather</h2>
+        <div class="temp-toggle">
+            <button class="temp-btn active" data-unit="C">°C</button>
+            <button class="temp-btn" data-unit="F">°F</button>
+        </div>
+    </div>
+    
+    <div class="search-container">
+        <input type="text" id="cityInput" placeholder="Enter city name..." autofocus>
+        <button id="searchBtn">🔍 Search</button>
+    </div>
+    
+    <div id="recentSearches" style="display: flex; gap: 0.5rem; flex-wrap: wrap; font-size: 0.9rem;"></div>
+</div>
+
+<!-- Current Weather -->
+<div id="currentWeather"></div>
+
+<!-- Tabs -->
+<div class="tabs">
+    <button class="tab active" data-tab="forecast">📅 Forecast</button>
+    <button class="tab" data-tab="favorites">⭐ Favorites</button>
+    <button class="tab" data-tab="alerts">🚨 Alerts</button>
+</div>
+
+<!-- Forecast Tab -->
+<div id="forecast" class="tab-content active">
+    <div class="card">
+        <h3 style="color: #667eea; margin-bottom: 1.5rem;">5-Day Forecast</h3>
+        <div id="forecastContainer" class="center-text">Select a city to view forecast</div>
+    </div>
+</div>
+
+<!-- Favorites Tab -->
+<div id="favorites" class="tab-content">
+    <div class="card">
+        <h3 style="color: #667eea; margin-bottom: 1.5rem;">Favorite Locations</h3>
+        <ul id="favoritesList" class="list">
+            {% for favorite in favorites %}
+            <li class="list-item">
+                <span>📍 {{ favorite['city'] }}</span>
+                <div>
+                    <button class="btn-small" onclick="searchCity('{{ favorite['city'] }}')" style="margin-right: 0.5rem;">View</button>
+                    <button class="btn-small btn-danger" onclick="removeFavorite('{{ favorite['city'] }}');">Remove</button>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+        <p class="center-text" id="noFavoritesMsg" style="{% if favorites %}display:none;{% endif %}">No favorites yet. Add one from the search results!</p>
+    </div>
+</div>
+
+<!-- Alerts Tab -->
+<div id="alerts" class="tab-content">
+    <div class="card">
+        <h3 style="color: #667eea; margin-bottom: 1.5rem;">Weather Alerts</h3>
+        <div class="form-group" style="background: #f8f9fa; padding: 1rem; border-radius: 5px; margin-bottom: 1.5rem;">
+            <label>Create Alert</label>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-top: 1rem;">
+                <input type="text" id="alertCity" placeholder="City name" style="grid-column: span 1;">
+                <select id="alertType" style="grid-column: span 1;">
+                    <option value="temperature">Temperature</option>
+                    <option value="wind">Wind Speed</option>
+                    <option value="rain">Precipitation</option>
+                </select>
+                <input type="number" id="alertThreshold" placeholder="Threshold value" style="grid-column: span 1;">
+                <button id="createAlertBtn" class="btn-success" style="grid-column: span 1;">Create Alert</button>
+            </div>
+        </div>
+        
+        <ul id="alertsList" class="list">
+        </ul>
+        <p class="center-text" id="noAlertsMsg">No alerts created yet.</p>
+    </div>
+</div>
+
+<script>
+    const cityInput = document.getElementById('cityInput');
+    const searchBtn = document.getElementById('searchBtn');
+    const currentWeatherDiv = document.getElementById('currentWeather');
+    const forecastContainer = document.getElementById('forecastContainer');
+    const tempToggle = document.querySelectorAll('.temp-btn');
+    let currentUnit = 'C';
+    let currentCity = null;
+    
+    // Temperature unit toggle
+    tempToggle.forEach(btn => {
+        btn.addEventListener('click', () => {
+            tempToggle.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentUnit = btn.dataset.unit;
+            if (currentCity) searchCity(currentCity);
+        });
+    });
+    
+    // Search button click
+    searchBtn.addEventListener('click', () => {
+        const city = cityInput.value.trim();
+        if (city) searchCity(city);
+    });
+    
+    // Enter key
+    cityInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            const city = cityInput.value.trim();
+            if (city) searchCity(city);
+        }
+    });
+    
+    function searchCity(city) {
+        fetch(`/api/weather/${city}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                    return;
+                }
+                currentCity = city;
+                displayCurrentWeather(data);
+                displayForecast(data);
+                loadRecents();
+            })
+            .catch(err => alert('Error: ' + err));
+    }
+    
+    function displayCurrentWeather(data) {
+        const current = data.weather.current;
+        const temp = currentUnit === 'C' ? Math.round(current.main.temp) : Math.round(current.main.temp * 9/5 + 32);
+        const feelsLike = currentUnit === 'C' ? Math.round(current.main.feels_like) : Math.round(current.main.feels_like * 9/5 + 32);
+        const unitSymbol = currentUnit === 'C' ? '°C' : '°F';
+        
+        const weatherIcon = getWeatherIcon(current.weather[0].main);
+        const weatherDescr = current.weather[0].description;
+        
+        currentWeatherDiv.innerHTML = `
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: start;">
+                    <div>
+                        <h2 style="color: #667eea; margin-bottom: 1rem;">${current.name}, ${current.sys.country}</h2>
+                        <div class="weather-icon">${weatherIcon}</div>
+                        <div class="temperature">${temp}${unitSymbol}</div>
+                        <div class="weather-description">${weatherDescr}</div>
+                        <p style="color: #999; margin-top: 0.5rem;">Feels like ${feelsLike}${unitSymbol}</p>
+                    </div>
+                    <button class="btn-success" onclick="addFavorite('${current.name}')">⭐ Add to Favorites</button>
+                </div>
+                
+                <div class="weather-details">
+                    <div class="detail">
+                        <div class="detail-label">Humidity</div>
+                        <div class="detail-value">${current.main.humidity}%</div>
+                    </div>
+                    <div class="detail">
+                        <div class="detail-label">Wind Speed</div>
+                        <div class="detail-value">${current.wind.speed} m/s</div>
+                    </div>
+                    <div class="detail">
+                        <div class="detail-label">Pressure</div>
+                        <div class="detail-value">${current.main.pressure} hPa</div>
+                    </div>
+                    <div class="detail">
+                        <div class="detail-label">Visibility</div>
+                        <div class="detail-value">${(current.visibility / 1000).toFixed(1)} km</div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    function displayForecast(data) {
+        const forecast = data.forecast.list || [];
+        const dailyForecasts = {};
+        
+        forecast.forEach(item => {
+            const date = new Date(item.dt * 1000).toLocaleDateString();
+            if (!dailyForecasts[date]) {
+                dailyForecasts[date] = item;
+            }
+        });
+        
+        let html = '<div class="forecast-grid">';
+        Object.entries(dailyForecasts).slice(0, 5).forEach(([date, item]) => {
+            const temp = currentUnit === 'C' ? Math.round(item.main.temp) : Math.round(item.main.temp * 9/5 + 32);
+            const icon = getWeatherIcon(item.weather[0].main);
+            const unitSymbol = currentUnit === 'C' ? '°C' : '°F';
+            
+            html += `
+                <div class="forecast-item">
+                    <div class="forecast-time">${date}</div>
+                    <div class="forecast-icon">${icon}</div>
+                    <div class="forecast-temp">${temp}${unitSymbol}</div>
+                    <small style="color: #666;">${item.weather[0].description}</small>
+                </div>
+            `;
+        });
+        html += '</div>';
+        forecastContainer.innerHTML = html;
+    }
+    
+    function getWeatherIcon(weather) {
+        const icons = {
+            'Clouds': '☁️',
+            'Clear': '☀️',
+            'Rain': '🌧️',
+            'Drizzle': '🌦️',
+            'Thunderstorm': '⛈️',
+            'Snow': '❄️',
+            'Mist': '🌫️',
+            'Smoke': '💨',
+            'Haze': '🌫️',
+            'Dust': '🌪️',
+            'Fog': '🌫️',
+            'Sand': '🌪️',
+            'Ash': '🌋',
+            'Squall': '🌪️',
+            'Tornado': '🌪️'
+        };
+        return icons[weather] || '🌤️';
+    }
+    
+    function addFavorite(city) {
+        fetch('/api/favorites', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({city})
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                alert('✅ ' + data.message);
+                loadFavorites();
+            } else {
+                alert('❌ ' + data.error);
+            }
+        })
+        .catch(err => alert('Error: ' + err));
+    }
+    
+    function removeFavorite(city) {
+        if (confirm(`Remove ${city} from favorites?`)) {
+            fetch(`/api/favorites?city=${city}`, {method: 'DELETE'})
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        loadFavorites();
+                    }
+                })
+                .catch(err => alert('Error: ' + err));
+        }
+    }
+    
+    function loadFavorites() {
+        fetch('/api/favorites')
+            .then(res => res.json())
+            .then(favs => {
+                const list = document.getElementById('favoritesList');
+                const noMsg = document.getElementById('noFavoritesMsg');
+                
+                if (favs.length === 0) {
+                    list.innerHTML = '';
+                    noMsg.style.display = 'block';
+                } else {
+                    noMsg.style.display = 'none';
+                    list.innerHTML = favs.map(fav => `
+                        <li class="list-item">
+                            <span>📍 ${fav.city}</span>
+                            <div>
+                                <button class="btn-small" onclick="searchCity('${fav.city}')" style="margin-right: 0.5rem;">View</button>
+                                <button class="btn-small btn-danger" onclick="removeFavorite('${fav.city}')">Remove</button>
+                            </div>
+                        </li>
+                    `).join('');
+                }
+            })
+            .catch(err => console.log('Error:', err));
+    }
+    
+    function loadRecents() {
+        const recentsDiv = document.getElementById('recentSearches');
+        fetch('/api/favorites')
+            .then(res => res.json())
+            .then(favs => {
+                recentsDiv.innerHTML = '<strong style="width: 100%;">Quick access:</strong> ' + 
+                    favs.map(f => `<button class="btn-small" onclick="searchCity('${f.city}')" style="background: rgba(255,255,255,0.3); border: none;">${f.city}</button>`).join('');
+            })
+            .catch(err => console.log('Error:', err));
+    }
+    
+    // Tab switching
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+            tab.classList.add('active');
+            document.getElementById(tab.dataset.tab).classList.add('active');
+            
+            if (tab.dataset.tab === 'favorites') loadFavorites();
+            if (tab.dataset.tab === 'alerts') loadAlerts();
+        });
+    });
+    
+    // Alerts management
+    document.getElementById('createAlertBtn').addEventListener('click', () => {
+        const city = document.getElementById('alertCity').value.trim();
+        const type = document.getElementById('alertType').value;
+        const threshold = document.getElementById('alertThreshold').value;
+        
+        if (!city || !threshold) {
+            alert('Please fill all fields');
+            return;
+        }
+        
+        fetch('/api/alerts', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({city, alert_type: type, threshold})
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                alert('✅ Alert created');
+                document.getElementById('alertCity').value = '';
+                document.getElementById('alertThreshold').value = '';
+                loadAlerts();
+            } else {
+                alert('❌ ' + data.error);
+            }
+        })
+        .catch(err => alert('Error: ' + err));
+    });
+    
+    function loadAlerts() {
+        fetch('/api/alerts')
+            .then(res => res.json())
+            .then(alerts => {
+                const list = document.getElementById('alertsList');
+                const noMsg = document.getElementById('noAlertsMsg');
+                
+                if (alerts.length === 0) {
+                    list.innerHTML = '';
+                    noMsg.style.display = 'block';
+                } else {
+                    noMsg.style.display = 'none';
+                    list.innerHTML = alerts.map(alert => `
+                        <li class="list-item">
+                            <span>
+                                <strong>${alert.city}</strong> - ${alert.alert_type} (${alert.threshold})
+                            </span>
+                            <button class="btn-small btn-danger" onclick="deleteAlert(${alert.id})">Delete</button>
+                        </li>
+                    `).join('');
+                }
+            })
+            .catch(err => console.log('Error:', err));
+    }
+    
+    function deleteAlert(id) {
+        if (confirm('Delete this alert?')) {
+            fetch(`/api/alerts?id=${id}`, {method: 'DELETE'})
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) loadAlerts();
+                })
+                .catch(err => alert('Error: ' + err));
+        }
+    }
+    
+    // Load initial data
+    loadFavorites();
+</script>
+{% endblock %}
