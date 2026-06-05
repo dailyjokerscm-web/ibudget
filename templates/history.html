@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}Expense History - iBudget{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <h1 style="color: #667eea;">📈 Expense History</h1>
+    <a href="/dashboard" style="color: #667eea; text-decoration: none;">← Back to Dashboard</a>
+</div>
+
+<div class="card">
+    {% if expenses %}
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Category</th>
+                <th>Amount (R)</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for expense in expenses %}
+            <tr>
+                <td>{{ expense['date'][:10] }}</td>
+                <td><strong>{{ expense['category']|title }}</strong></td>
+                <td>R{{ "%.2f"|format(expense['amount']) }}</td>
+                <td>{{ expense['description'] or '-' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="text-align: center; color: #999; padding: 2rem;">No expenses recorded yet. Start tracking your spending!</p>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - iBudget{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <h1 style="color: #667eea;">📊 Dashboard</h1>
+    <p style="color: #666;">Welcome, <strong>{{ session.username }}</strong>!</p>
+</div>
+
+{% if stats %}
+<div class="row">
+    <div class="stat">
+        <h3>Total Expenses</h3>
+        <p>R{{ "%.2f"|format(stats.total_expenses) }}</p>
+    </div>
+    <div class="stat">
+        <h3>Active Goals</h3>
+        <p>{{ stats.active_goals }}</p>
+    </div>
+    <div style="text-align: center;">
+        <a href="/history" style="color: #667eea; text-decoration: none; margin: 0 1rem;">📈 View History</a>
+        <a href="/goals" style="color: #667eea; text-decoration: none; margin: 0 1rem;">🎯 All Goals</a>
+    </div>
+</div>
+{% endif %}
+
+<div class="card">
+    <h2 style="color: #667eea; margin-bottom: 1.5rem;">💡 Create Your Budget Plan</h2>
+    
+    <form method="POST">
+        <div class="row">
+            <div class="form-group">
+                <label for="income">Monthly Income (R)</label>
+                <input type="number" id="income" name="income" step="0.01" placeholder="e.g., 5000" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="target">Savings Goal (R)</label>
+                <input type="number" id="target" name="target" step="0.01" placeholder="e.g., 10000" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="deadline">Goal Deadline</label>
+                <input type="date" id="deadline" name="deadline" required>
+            </div>
+        </div>
+        
+        <h3 style="color: #667eea; margin: 2rem 0 1rem 0;">Monthly Expenses</h3>
+        <div class="row">
+            <div class="form-group">
+                <label for="rent">Rent (R)</label>
+                <input type="number" id="rent" name="rent" step="0.01" placeholder="0.00" min="0">
+            </div>
+            
+            <div class="form-group">
+                <label for="food">Food (R)</label>
+                <input type="number" id="food" name="food" step="0.01" placeholder="0.00" min="0">
+            </div>
+            
+            <div class="form-group">
+                <label for="transport">Transport (R)</label>
+                <input type="number" id="transport" name="transport" step="0.01" placeholder="0.00" min="0">
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="form-group">
+                <label for="entertainment">Entertainment (R)</label>
+                <input type="number" id="entertainment" name="entertainment" step="0.01" placeholder="0.00" min="0">
+            </div>
+            
+            <div class="form-group">
+                <label for="utilities">Utilities (R)</label>
+                <input type="number" id="utilities" name="utilities" step="0.01" placeholder="0.00" min="0">
+            </div>
+            
+            <div class="form-group">
+                <label for="other">Other (R)</label>
+                <input type="number" id="other" name="other" step="0.01" placeholder="0.00" min="0">
+            </div>
+        </div>
+        
+        <button type="submit" style="width: 100%; padding: 1rem;">📊 Calculate Plan</button>
+    </form>
+</div>
+
+{% if result %}
+<div class="card">
+    <h2 style="color: #667eea; margin-bottom: 1rem;">📈 Your Plan Analysis</h2>
+    
+    {% if result.status == 'success' %}
+    <div class="result-box success">
+        <h3>✅ Great News!</h3>
+        <p>{{ result.message }}</p>
+    </div>
+    {% elif result.status == 'shortfall' %}
+    <div class="result-box warning">
+        <h3>⚡ Budget Adjustment Needed</h3>
+        <p>{{ result.message }}</p>
+    </div>
+    {% elif result.status == 'warning' %}
+    <div class="result-box warning">
+        <h3>⚠️ Warning</h3>
+        <p>{{ result.message }}</p>
+    </div>
+    {% else %}
+    <div class="result-box danger">
+        <h3>❌ Error</h3>
+        <p>{{ result.message }}</p>
+    </div>
+    {% endif %}
+    
+    {% if advice %}
+    <div style="margin-top: 2rem;">
+        <h3 style="color: #667eea; margin-bottom: 1rem;">💰 iBudget Coach Recommendations:</h3>
+        <ul class="advice-list">
+            {% for tip in advice %}
+            <li>{{ tip }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+{% if goals %}
+<div class="card">
+    <h2 style="color: #667eea; margin-bottom: 1rem;">🎯 Recent Goals</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Goal</th>
+                <th>Target</th>
+                <th>Deadline</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for goal in goals %}
+            <tr>
+                <td>{{ goal['goal_name'] }}</td>
+                <td>R{{ "%.2f"|format(goal['target_amount']) }}</td>
+                <td>{{ goal['deadline'] }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}Goals - iBudget{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <h1 style="color: #667eea;">🎯 Your Financial Goals</h1>
+    <a href="/dashboard" style="color: #667eea; text-decoration: none;">← Back to Dashboard</a>
+</div>
+
+<div class="card">
+    {% if goals %}
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 2rem;">
+        {% for goal in goals %}
+        <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 10px; border-left: 4px solid #667eea;">
+            <h3 style="color: #667eea; margin-bottom: 1rem;">{{ goal['goal_name'] }}</h3>
+            <p style="margin: 0.5rem 0; color: #666;">
+                <strong>Target Amount:</strong> R{{ "%.2f"|format(goal['target_amount']) }}
+            </p>
+            <p style="margin: 0.5rem 0; color: #666;">
+                <strong>Current Amount:</strong> R{{ "%.2f"|format(goal['current_amount']) }}
+            </p>
+            <p style="margin: 0.5rem 0; color: #666;">
+                <strong>Deadline:</strong> {{ goal['deadline'] }}
+            </p>
+            <div style="background: white; height: 8px; border-radius: 4px; margin: 1rem 0; overflow: hidden;">
+                {% set progress = (goal['current_amount'] / goal['target_amount'] * 100)|int if goal['target_amount'] > 0 else 0 %}
+                <div style="background: linear-gradient(90deg, #667eea, #764ba2); width: {{ progress }}%; height: 100%; transition: width 0.3s;"></div>
+            </div>
+            <p style="text-align: center; color: #667eea; font-weight: bold;">{{ progress }}% Complete</p>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p style="text-align: center; color: #999; padding: 2rem;">No goals yet. Create your first financial goal in the dashboard!</p>
+    {% endif %}
+</div>
+{% endblock %}
